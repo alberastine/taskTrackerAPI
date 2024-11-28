@@ -8,7 +8,7 @@ const TaskSchema = new mongoose.Schema({
 });
 
 const UserSchema = new mongoose.Schema({
-    id:{ type: Number },
+    id: { type: String },
     username: { type: String, required: true },
     password: { type: String, required: true },
     gmail: { type: String, required: true },

@@ -4,19 +4,18 @@ import {
     loginUser,
     getAllUser,
     getUserById,
+    getUserProfile,
+    logoutUser,
 } from '../controllers/authController';
+import { authenticateToken } from '../helpers/authentication';
 
 const router = express.Router();
 
-router.post('/signup', (req, res) => {
-    registerUser(req, res);
-});
-router.post('/login', (req, res) => {
-    loginUser(req, res);
-});
-router.get('/id', (req, res) => {
-    getUserById(req, res);
-});
+router.post('/signup', registerUser);
+router.post('/login', loginUser);
+router.post('/logout', logoutUser);
+router.get('/id', getUserById);
 router.get('/allUserInfo', getAllUser);
+router.get('/profile', authenticateToken, getUserProfile);
 
 export default router;

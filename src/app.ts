@@ -3,15 +3,17 @@ import cors from 'cors';
 import connectDB from './config/db';
 import authRoutes from './routes/auth';
 // import dotenv from 'dotenv';
-import bodyParser from "body-parser";
+import bodyParser from 'body-parser';
 import router from './routes/auth';
+import cookieParser from 'cookie-parser';
 
 // dotenv.config();
 
 const app = express();
 
 app.use(bodyParser.json());
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cookieParser());
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use('/api/users', router);
 
 connectDB();

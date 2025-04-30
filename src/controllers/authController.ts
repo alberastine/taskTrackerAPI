@@ -1,25 +1,39 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import { hashPassword, comparePassword } from '../helpers/hashedPass';
+import jwt from 'jsonwebtoken';
 
 export const registerUser = async (req: Request, res: Response) => {
-    const { username, password, gmail } = req.body;
-
-    // Check if the username or Gmail already exists
     try {
-        const existingUser = await User.findOne({
-            $or: [{ username }, { gmail }],
-        });
+        const { username, password, gmail } = req.body;
+
+        // Check if name was entered
+        if (!username) {
+            res.json({ error: 'Name is required' });
+            return;
+        }
+        // Check if password was good
+        if (!password || password.length < 6) {
+            res.json({
+                error: 'Password is required and should be at least 6 characters',
+            });
+            return;
+        }
+
+        // Check if the Gmail already exists
+        const existingUser = await User.findOne({ gmail });
 
         if (existingUser) {
-            return res
-                .status(400)
-                .json({ message: 'Username or Gmail already exists' });
+            res.status(400).json({ message: 'Email already exists' });
+            return;
         }
+
+        const hashedPassword = await hashPassword(password);
 
         // Create a new user
         const newUser = new User({
             username,
-            password,
+            password: hashedPassword,
             gmail,
             tasks: [],
         });
@@ -32,26 +46,49 @@ export const registerUser = async (req: Request, res: Response) => {
 };
 
 export const loginUser = async (req: Request, res: Response) => {
-    const { username, password } = req.body;
     try {
+        const { gmail, password } = req.body;
         // Find user by username
-        const user = await User.findOne({ username, password });
-
+        const user = await User.findOne({ gmail });
         if (!user) {
-            return res
-                .status(400)
-                .json({ message: 'Username or password incorrect' });
+            res.status(400).json({ message: 'Email or password incorrect' });
+            return;
         }
 
         // Check if the password matches
-        if (user.password !== password) {
-            return res
-                .status(400)
-                .json({ message: 'Username or password incorrect' });
+
+        // if (user.password !== password) {
+        //     return res
+        //         .status(400)
+        //         .json({ message: 'Username or password incorrect' });
+        // }
+        const isMatch = await comparePassword(password, user.password);
+        if (!isMatch) {
+            res.status(401).json({ error: 'Invalid password' });
+            return;
         }
 
-        // Successful login
-        res.status(202).json({
+        const token = jwt.sign(
+            {
+                id: user._id,
+                username: user.username,
+                gmail: user.gmail,
+                tasks: user.tasks,
+            },
+            process.env.JWT_SECRET || '',
+            { expiresIn: '1h' }
+        );
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 3600000, // 1 hour
+        });
+
+        //can be removed after testing
+        res.status(200).json({
+            message: 'Logged in successfully',
             user: {
                 id: user._id,
                 username: user.username,
@@ -59,6 +96,7 @@ export const loginUser = async (req: Request, res: Response) => {
                 tasks: user.tasks,
             },
         });
+        return;
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
@@ -69,7 +107,8 @@ export const getUserById = async (req: Request, res: Response) => {
         const id = req.params.id;
         const user = await User.findById(id);
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            res.status(404).json({ error: 'User not found' });
+            return;
         }
         res.status(200).json(user);
     } catch (error) {
@@ -84,4 +123,30 @@ export const getAllUser = async (req: Request, res: Response) => {
     } catch (error) {
         res.status(500).json({ error: 'Error fetching users' });
     }
+};
+
+export const getUserProfile = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user.id;
+
+        const user = await User.findById(userId).select('-password');
+        if (!user) {
+            res.status(404).json({ message: 'User not found.' });
+            return;
+        }
+
+        res.status(200).json({ user });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+export const logoutUser = (req: Request, res: Response): void => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+    });
+
+    res.status(200).json({ message: 'Logged out successfully' });
 };

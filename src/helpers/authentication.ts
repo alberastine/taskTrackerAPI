@@ -1,4 +1,3 @@
-// middleware/auth.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -19,7 +18,6 @@ export const authenticateToken = (
             token,
             process.env.JWT_SECRET || ''
         ) as jwt.JwtPayload;
-        // Attach decoded data (like user ID) to the request object
         (req as any).user = decoded;
         next(); // Pass control to the next middleware/route handler
     } catch (err) {

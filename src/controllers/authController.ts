@@ -56,12 +56,6 @@ export const loginUser = async (req: Request, res: Response) => {
         }
 
         // Check if the password matches
-
-        // if (user.password !== password) {
-        //     return res
-        //         .status(400)
-        //         .json({ message: 'Username or password incorrect' });
-        // }
         const isMatch = await comparePassword(password, user.password);
         if (!isMatch) {
             res.status(401).json({ error: 'Invalid password' });
@@ -86,7 +80,6 @@ export const loginUser = async (req: Request, res: Response) => {
             maxAge: 3600000, // 1 hour
         });
 
-        //can be removed after testing
         res.status(200).json({
             message: 'Logged in successfully',
             user: {

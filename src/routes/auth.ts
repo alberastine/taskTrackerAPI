@@ -6,6 +6,7 @@ import {
     getUserById,
     getUserProfile,
     logoutUser,
+    addTask
 } from '../controllers/authController';
 import { authenticateToken } from '../helpers/authentication';
 
@@ -17,5 +18,6 @@ router.post('/logout', logoutUser);
 router.get('/id', getUserById);
 router.get('/allUserInfo', getAllUser);
 router.get('/profile', authenticateToken, getUserProfile);
+router.post('/addTask',authenticateToken, addTask);
 
 export default router;

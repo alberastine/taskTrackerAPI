@@ -8,12 +8,10 @@ export const registerUser = async (req: Request, res: Response) => {
     try {
         const { username, password, gmail } = req.body;
 
-        // Check if name was entered
         if (!username) {
             res.json({ error: 'Name is required' });
             return;
         }
-        // Check if password was good
         if (!password || password.length < 6) {
             res.json({
                 error: 'Password is required and should be at least 6 characters',
@@ -21,7 +19,6 @@ export const registerUser = async (req: Request, res: Response) => {
             return;
         }
 
-        // Check if the Gmail already exists
         const existingEmail = await User.findOne({ gmail });
 
         if (existingEmail) {
@@ -31,7 +28,6 @@ export const registerUser = async (req: Request, res: Response) => {
 
         const hashedPassword = await hashPassword(password);
 
-        // Create a new user
         const newUser = new User({
             username,
             password: hashedPassword,
@@ -49,14 +45,13 @@ export const registerUser = async (req: Request, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
     try {
         const { gmail, password } = req.body;
-        // Find user by username
+
         const user = await User.findOne({ gmail });
         if (!user) {
             res.status(400).json({ message: 'Email or password incorrect' });
             return;
         }
 
-        // Check if the password matches
         const isMatch = await comparePassword(password, user.password);
         if (!isMatch) {
             res.status(401).json({ error: 'Invalid password' });
@@ -78,7 +73,7 @@ export const loginUser = async (req: Request, res: Response) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 3600000, // 1 hour
+            maxAge: 3600000,
         });
 
         res.status(200).json({

@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 const { v4: uuidv4 } = require('uuid');
 
+const EventSchema = new mongoose.Schema({
+    title: String,
+    date: String,
+  });
+
 const TaskSchema = new mongoose.Schema({
     taskName: String,
     dateStarted: String,
@@ -14,6 +19,7 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     gmail: { type: String, required: true, unique: true },
     tasks: [TaskSchema],
+    events: [EventSchema],
 });
 
 const User = mongoose.model('User', UserSchema);

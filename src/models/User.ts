@@ -20,6 +20,10 @@ const UserSchema = new mongoose.Schema({
     gmail: { type: String, required: true, unique: true },
     tasks: [TaskSchema],
     events: [EventSchema],
+    profilePic: {
+        type: String,
+        default: '',
+      },
 });
 
 const User = mongoose.model('User', UserSchema);

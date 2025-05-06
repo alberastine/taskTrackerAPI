@@ -10,9 +10,11 @@ import {
     addEvent,
     getEvents,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    uploadProfilePicture,
 } from '../controllers/authController';
 import { authenticateToken } from '../helpers/authentication';
+import { upload } from '../utils/multer';
 
 const router = express.Router();
 
@@ -22,6 +24,13 @@ router.post('/logout', logoutUser);
 router.get('/id', getUserById);
 router.get('/allUserInfo', getAllUser);
 router.get('/profile', authenticateToken, getUserProfile);
+router.post(
+    '/uploadProfilePicture',
+    authenticateToken,
+    upload.single('profilePic'),
+    uploadProfilePicture
+);
+
 router.post('/addTask', authenticateToken, addTask);
 router.post('/events', authenticateToken, addEvent);
 router.get('/events', authenticateToken, getEvents);

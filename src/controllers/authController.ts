@@ -131,6 +131,40 @@ export const getUserProfile = async (req: Request, res: Response) => {
     }
 };
 
+export const uploadProfilePicture = async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            res.status(400).json({ message: 'No file uploaded.' });
+            return;
+        }
+        const userId = (req as any).user.id;
+        const imagePath = `/uploads/${req.file?.filename}`;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePic: imagePath },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            res.status(404).json({ message: 'User not found.' });
+            return;
+        }
+
+        res.status(200).json({
+            message: 'Profile picture updated.',
+            user: updatedUser,
+        });
+        return;
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error uploading profile picture.',
+            error,
+        });
+        return;
+    }
+};
+
 export const logoutUser = (req: Request, res: Response): void => {
     res.clearCookie('token', {
         httpOnly: true,
@@ -201,7 +235,10 @@ export const getEvents = async (req: Request, res: Response) => {
     }
 };
 
-export const updateEvent = async (req: Request, res: Response): Promise<void> => {
+export const updateEvent = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
         const userId = (req as any).user.id;
         const { eventId } = req.params;
@@ -233,7 +270,10 @@ export const updateEvent = async (req: Request, res: Response): Promise<void> =>
     }
 };
 
-export const deleteEvent = async (req: Request, res: Response): Promise<void> => {
+export const deleteEvent = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
     try {
         const userId = (req as any).user.id;
         const { eventId } = req.params;
@@ -245,7 +285,9 @@ export const deleteEvent = async (req: Request, res: Response): Promise<void> =>
         }
 
         // Find and remove the event by ID
-        const eventIndex = user.events.findIndex((event: any) => event.id === eventId);
+        const eventIndex = user.events.findIndex(
+            (event: any) => event.id === eventId
+        );
         if (eventIndex === -1) {
             res.status(404).json({ message: 'Event not found.' });
             return;

@@ -165,6 +165,40 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
     }
 };
 
+export const uploadCoverPicture = async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            res.status(400).json({ message: 'No file uploaded.' });
+            return;
+        }
+        const userId = (req as any).user.id;
+        const imagePath = `/uploads/${req.file?.filename}`;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { coverPic: imagePath },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            res.status(404).json({ message: 'User not found.' });
+            return;
+        }
+
+        res.status(200).json({
+            message: 'Cover picture updated.',
+            user: updatedUser,
+        });
+        return;
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error uploading profile picture.',
+            error,
+        });
+        return;
+    }
+};
+
 export const logoutUser = (req: Request, res: Response): void => {
     res.clearCookie('token', {
         httpOnly: true,

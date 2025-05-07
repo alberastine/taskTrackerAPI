@@ -12,6 +12,7 @@ import {
     updateEvent,
     deleteEvent,
     uploadProfilePicture,
+    uploadCoverPicture,
 } from '../controllers/authController';
 import { authenticateToken } from '../helpers/authentication';
 import { upload } from '../utils/multer';
@@ -29,6 +30,13 @@ router.post(
     authenticateToken,
     upload.single('profilePic'),
     uploadProfilePicture
+);
+
+router.post(
+    '/uploadCoverPicture',
+    authenticateToken,
+    upload.single('coverPic'),
+    uploadCoverPicture
 );
 
 router.post('/addTask', authenticateToken, addTask);

@@ -19,6 +19,15 @@ import {
 } from '../controllers/userController';
 import { addTask } from '../controllers/taskController';
 
+import {
+    createTeam,
+    sendTeamInvitation,
+    joinTeam,
+    deleteTeam,
+    leaveTeam,
+    getUserTeams,
+} from '../controllers/teamController';
+
 const router = express.Router();
 
 //user routes
@@ -49,5 +58,14 @@ router.post('/events', authenticateToken, addEvent);
 router.get('/events', authenticateToken, getEvents);
 router.put('/events/:eventId', authenticateToken, updateEvent);
 router.delete('/events/:eventId', authenticateToken, deleteEvent);
+
+// team routes
+
+router.post('/createTeam', authenticateToken, createTeam);
+router.post('/inviteMember', authenticateToken, sendTeamInvitation);
+router.post('/joinTeam', authenticateToken, joinTeam);
+router.get('/user-teams', authenticateToken, getUserTeams);
+router.post('/leaveTeam', authenticateToken, leaveTeam);
+router.delete('/deleteTeam', authenticateToken, deleteTeam);
 
 export default router;

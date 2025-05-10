@@ -68,8 +68,8 @@ router.post('/inviteMember', authenticateToken, sendTeamInvitation);
 router.post('/respondToInvitation', authenticateToken, respondToInvitation);
 router.post('/requestToJoinTeam', authenticateToken, requestToJoinTeam);
 router.post('/respondToJoinRequest', authenticateToken, respondToJoinRequest);
-router.get('/user-teams', authenticateToken, getUserTeams);
 router.post('/leaveTeam', authenticateToken, leaveTeam);
 router.delete('/deleteTeam', authenticateToken, deleteTeam);
+router.get('/user-teams', authenticateToken, getUserTeams);
 
 export default router;

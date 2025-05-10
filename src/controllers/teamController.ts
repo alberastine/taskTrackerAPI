@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { ObjectId } from 'mongodb';
 import Team from '../models/Team';
 import User from '../models/User';
 
@@ -7,10 +6,6 @@ export const createTeam = async (req: Request, res: Response) => {
     try {
         const { team_name } = req.body;
         const leader_id = (req as any).user.id;
-
-        console.log('Received request body:', req.body);
-        console.log('Team name:', team_name);
-        console.log('Leader ID:', leader_id);
 
         // Validate team name
         if (!team_name) {
@@ -489,12 +484,19 @@ export const getUserTeams = async (req: Request, res: Response) => {
         }
 
         const teams = await Team.find({
-            $or: [{ leader_id: user_id }, { members_lists: user_id }],
+            $or: [
+                { leader_id: user_id },
+                { 'members_lists.user_id': user_id }
+            ],
         });
 
         res.status(200).json({ teams });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching user teams', error });
+        console.error('Error fetching user teams:', error);
+        res.status(500).json({ 
+            message: 'Error fetching user teams',
+            details: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
     }
 };
 

@@ -1,4 +1,12 @@
 import express from 'express';
+import { authenticateToken } from '../helpers/authentication';
+import { upload } from '../utils/multer';
+import {
+    addEvent,
+    getEvents,
+    updateEvent,
+    deleteEvent,
+} from '../controllers/calendarEventController';
 import {
     registerUser,
     loginUser,
@@ -6,19 +14,14 @@ import {
     getUserById,
     getUserProfile,
     logoutUser,
-    addTask,
-    addEvent,
-    getEvents,
-    updateEvent,
-    deleteEvent,
     uploadProfilePicture,
     uploadCoverPicture,
-} from '../controllers/authController';
-import { authenticateToken } from '../helpers/authentication';
-import { upload } from '../utils/multer';
+} from '../controllers/userController';
+import { addTask } from '../controllers/taskController';
 
 const router = express.Router();
 
+//user routes
 router.post('/signup', registerUser);
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
@@ -31,7 +34,6 @@ router.post(
     upload.single('profilePic'),
     uploadProfilePicture
 );
-
 router.post(
     '/uploadCoverPicture',
     authenticateToken,
@@ -39,7 +41,10 @@ router.post(
     uploadCoverPicture
 );
 
+// task routes
 router.post('/addTask', authenticateToken, addTask);
+
+// event routes
 router.post('/events', authenticateToken, addEvent);
 router.get('/events', authenticateToken, getEvents);
 router.put('/events/:eventId', authenticateToken, updateEvent);

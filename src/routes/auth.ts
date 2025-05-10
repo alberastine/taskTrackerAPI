@@ -22,7 +22,9 @@ import { addTask } from '../controllers/taskController';
 import {
     createTeam,
     sendTeamInvitation,
-    joinTeam,
+    respondToInvitation,
+    requestToJoinTeam,
+    respondToJoinRequest,
     deleteTeam,
     leaveTeam,
     getUserTeams,
@@ -63,7 +65,9 @@ router.delete('/events/:eventId', authenticateToken, deleteEvent);
 
 router.post('/createTeam', authenticateToken, createTeam);
 router.post('/inviteMember', authenticateToken, sendTeamInvitation);
-router.post('/joinTeam', authenticateToken, joinTeam);
+router.post('/respondToInvitation', authenticateToken, respondToInvitation);
+router.post('/requestToJoinTeam', authenticateToken, requestToJoinTeam);
+router.post('/respondToJoinRequest', authenticateToken, respondToJoinRequest);
 router.get('/user-teams', authenticateToken, getUserTeams);
 router.post('/leaveTeam', authenticateToken, leaveTeam);
 router.delete('/deleteTeam', authenticateToken, deleteTeam);

@@ -107,7 +107,7 @@ export const sendTeamInvitation = async (req: Request, res: Response) => {
             return;
         }
 
-        // Find invited user to get their username
+        // Find invited user
         const invitedUser = await User.findById(invited_user_id);
         if (!invitedUser) {
             res.status(404).json({
@@ -117,9 +117,16 @@ export const sendTeamInvitation = async (req: Request, res: Response) => {
             return;
         }
 
-        // Check if user is already a member of this specific team or is the team leader
+        // Check if user is already a member or invited
+        const isAlreadyMember = team.members_lists.some(
+            (member) => member.user_id.toString() === invited_user_id.toString()
+        );
+        const isAlreadyInvited = team.invited_users.some(
+            (user) => user.user_id.toString() === invited_user_id.toString()
+        );
+
         if (
-            team.members_lists.includes(invited_user_id) ||
+            isAlreadyMember ||
             team.leader_id.toString() === invited_user_id.toString()
         ) {
             res.status(400).json({
@@ -129,73 +136,217 @@ export const sendTeamInvitation = async (req: Request, res: Response) => {
             return;
         }
 
-        // Add member to team
-        team.members_lists.push({
+        if (isAlreadyInvited) {
+            res.status(400).json({
+                message: 'User has already been invited to this team',
+            });
+            return;
+        }
+
+        // Add user to invited_users
+        team.invited_users.push({
             user_id: invited_user_id,
             username: invitedUser.username,
+            invited_at: new Date(),
         });
         await team.save();
 
         res.status(200).json({
-            message: 'Invitation sent and user added to team',
+            message: 'Invitation sent successfully',
         });
     } catch (error) {
         res.status(500).json({ message: 'Error sending invitation', error });
     }
 };
 
-export const joinTeam = async (req: Request, res: Response) => {
+export const respondToInvitation = async (req: Request, res: Response) => {
     try {
-        const { team_id } = req.body;
+        const { team_id, accept } = req.body;
         const user_id = (req as any).user.id;
         const username = (req as any).user.username;
 
-        const user = await User.findById(user_id);
-        if (!user) {
-            res.status(404).json({
-                message: 'User not found',
-                details: `No user found with ID: ${user_id}`,
-            });
-            return;
-        }
-
         const team = await Team.findById(team_id);
-
-        // Validation checks
         if (!team) {
             res.status(404).json({ message: 'Team not found' });
             return;
         }
 
-        if (team.members_lists.length >= team.member_limit) {
-            res.status(400).json({ message: 'Team is already full' });
-            return;
-        }
+        // Check if user is actually invited
+        const inviteIndex = team.invited_users.findIndex(
+            (user) => user.user_id.toString() === user_id.toString()
+        );
 
-        // Check if user is already in this specific team
-        if (
-            team.members_lists.includes(user_id) ||
-            team.leader_id.toString() === user_id.toString()
-        ) {
+        if (inviteIndex === -1) {
             res.status(400).json({
-                message:
-                    'You are already a member of this team or are the team leader',
+                message: 'No pending invitation found for this team',
             });
             return;
         }
 
-        // Add user to team
-        team.members_lists.push({
-            user_id,
-            username,
-        });
-        await team.save();
+        // Remove user from invited_users
+        team.invited_users.splice(inviteIndex, 1);
 
-        res.status(200).json({ message: 'Successfully joined team', team });
+        if (accept) {
+            // Check if team is full
+            if (team.members_lists.length >= team.member_limit) {
+                res.status(400).json({ message: 'Team is already full' });
+                return;
+            }
+
+            // Add user to members_lists
+            team.members_lists.push({
+                user_id,
+                username,
+            });
+
+            await team.save();
+            res.status(200).json({
+                message: 'Invitation accepted and joined team successfully',
+                team,
+            });
+        } else {
+            await team.save();
+            res.status(200).json({
+                message: 'Invitation declined successfully',
+            });
+        }
     } catch (error) {
-        res.status(500).json({ message: 'Error joining team', error });
+        res.status(500).json({
+            message: 'Error responding to invitation',
+            error,
+        });
     }
 };
+
+export const requestToJoinTeam = async (req: Request, res: Response) => {
+    try {
+        const { team_id } = req.body;
+        const user_id = (req as any).user.id;
+        const username = (req as any).user.username;
+
+        const team = await Team.findById(team_id);
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+
+        // Check if user is already a member
+        const isAlreadyMember = team.members_lists.some(
+            (member) => member.user_id.toString() === user_id.toString()
+        );
+
+        if (
+            isAlreadyMember ||
+            team.leader_id.toString() === user_id.toString()
+        ) {
+            res.status(400).json({
+                message:
+                    'You are already a member of this team or the team leader',
+            });
+            return;
+        }
+
+        // Check if user already has a pending request
+        const hasExistingRequest = team.join_requests.some(
+            (request) => request.user_id.toString() === user_id.toString()
+        );
+
+        if (hasExistingRequest) {
+            res.status(400).json({
+                message:
+                    'You already have a pending join request for this team',
+            });
+            return;
+        }
+
+        // Add join request
+        team.join_requests.push({
+            user_id,
+            username,
+            requested_at: new Date(),
+        });
+
+        await team.save();
+        res.status(200).json({
+            message: 'Join request sent successfully',
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error sending join request',
+            error,
+        });
+    }
+};
+
+export const respondToJoinRequest = async (req: Request, res: Response) => {
+    try {
+        const { team_id, user_id, accept } = req.body;
+        const leader_id = (req as any).user.id;
+
+        const team = await Team.findById(team_id);
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+
+        // Verify that the responder is the team leader
+        if (team.leader_id.toString() !== leader_id.toString()) {
+            res.status(403).json({
+                message: 'Only team leader can respond to join requests',
+            });
+            return;
+        }
+
+        // Find the join request
+        const requestIndex = team.join_requests.findIndex(
+            (request) => request.user_id.toString() === user_id.toString()
+        );
+
+        if (requestIndex === -1) {
+            res.status(404).json({
+                message: 'Join request not found',
+            });
+            return;
+        }
+
+        const request = team.join_requests[requestIndex];
+
+        // Remove the request
+        team.join_requests.splice(requestIndex, 1);
+
+        if (accept) {
+            // Check if team is full
+            if (team.members_lists.length >= team.member_limit) {
+                res.status(400).json({ message: 'Team is already full' });
+                return;
+            }
+
+            // Add user to members_lists
+            team.members_lists.push({
+                user_id: request.user_id,
+                username: request.username,
+            });
+
+            await team.save();
+            res.status(200).json({
+                message: 'Join request accepted',
+                team,
+            });
+        } else {
+            await team.save();
+            res.status(200).json({
+                message: 'Join request declined',
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error responding to join request',
+            error,
+        });
+    }
+};
+
+
 export const leaveTeam = async (req: Request, res: Response) => {
     try {
         const { team_id } = req.body;
@@ -324,9 +475,6 @@ export const deleteTeam = async (req: Request, res: Response) => {
     }
 };
 
-
-
-// Additional helper function to get all teams a user is part of
 export const getUserTeams = async (req: Request, res: Response) => {
     try {
         const user_id = (req as any).user.id;
@@ -349,3 +497,4 @@ export const getUserTeams = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Error fetching user teams', error });
     }
 };
+

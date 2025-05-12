@@ -287,7 +287,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
         const updatedUser = await User.findByIdAndUpdate(userId, updates, {
             new: true,
-        });
+        }).select('-password');
 
         res.status(200).json({
             message: 'User updated successfully',

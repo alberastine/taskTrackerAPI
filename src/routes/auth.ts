@@ -16,6 +16,7 @@ import {
     logoutUser,
     uploadProfilePicture,
     uploadCoverPicture,
+    updateUser
 } from '../controllers/userController';
 import { addTask } from '../controllers/taskController';
 
@@ -51,6 +52,7 @@ router.post(
     upload.single('coverPic'),
     uploadCoverPicture
 );
+router.put('/updateUser', authenticateToken, updateUser);
 
 // task routes
 router.post('/addTask', authenticateToken, addTask);

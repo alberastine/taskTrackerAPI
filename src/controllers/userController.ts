@@ -207,3 +207,96 @@ export const logoutUser = (req: Request, res: Response): void => {
 
     res.status(200).json({ message: 'Logged out successfully' });
 };
+
+export const updateUser = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user.id;
+        const { username, gmail, currentPassword, newPassword } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+            return;
+        }
+
+        const updates: any = {};
+
+        if (username && username.trim()) {
+            if (username.length < 3) {
+                res.status(400).json({
+                    message: 'Username must be at least 3 characters long',
+                });
+                return;
+            }
+            updates.username = username.trim();
+        }
+
+        if (gmail && gmail.trim()) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(gmail)) {
+                res.status(400).json({ message: 'Invalid email format' });
+                return;
+            }
+
+            const existingEmail = await User.findOne({
+                gmail: gmail.trim(),
+                _id: { $ne: userId },
+            });
+            if (existingEmail) {
+                res.status(400).json({ message: 'Email already in use' });
+                return;
+            }
+            updates.gmail = gmail.trim();
+        }
+
+        if (newPassword && newPassword.trim()) {
+            if (!currentPassword) {
+                res.status(400).json({
+                    message: 'Current password is required to update password',
+                });
+                return;
+            }
+
+            const isMatch = await comparePassword(
+                currentPassword,
+                user.password
+            );
+            if (!isMatch) {
+                res.status(401).json({
+                    message: 'Current password is incorrect',
+                });
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                res.status(400).json({
+                    message: 'New password must be at least 6 characters long',
+                });
+                return;
+            }
+
+            updates.password = await hashPassword(newPassword);
+        }
+
+        if (Object.keys(updates).length === 0) {
+            res.status(400).json({
+                message: 'No valid updates provided',
+            });
+            return;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+            new: true,
+        });
+
+        res.status(200).json({
+            message: 'User updated successfully',
+            user: updatedUser,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: 'Error updating user',
+            error,
+        });
+    }
+};

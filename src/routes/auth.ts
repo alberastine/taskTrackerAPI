@@ -18,7 +18,7 @@ import {
     uploadCoverPicture,
     updateUser
 } from '../controllers/userController';
-import { addTask } from '../controllers/taskController';
+import { addTask, deleteTask, getTasks, updateTask } from '../controllers/taskController';
 
 import {
     createTeam,
@@ -56,6 +56,9 @@ router.put('/updateUser', authenticateToken, updateUser);
 
 // task routes
 router.post('/addTask', authenticateToken, addTask);
+router.get('/getTasks', authenticateToken, getTasks);
+router.delete('/deleteTask/:id', authenticateToken, deleteTask);
+router.put('/updateTask/:id', authenticateToken, updateTask);
 
 // event routes
 router.post('/events', authenticateToken, addEvent);

@@ -341,7 +341,6 @@ export const respondToJoinRequest = async (req: Request, res: Response) => {
     }
 };
 
-
 export const leaveTeam = async (req: Request, res: Response) => {
     try {
         const { team_id } = req.body;
@@ -486,17 +485,20 @@ export const getUserTeams = async (req: Request, res: Response) => {
         const teams = await Team.find({
             $or: [
                 { leader_id: user_id },
-                { 'members_lists.user_id': user_id }
+                { 'members_lists.user_id': user_id },
+                { 'invited_users.user_id': user_id },
             ],
         });
 
         res.status(200).json({ teams });
     } catch (error) {
         console.error('Error fetching user teams:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'Error fetching user teams',
-            details: error instanceof Error ? error.message : 'Unknown error occurred'
+            details:
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error occurred',
         });
     }
 };
-

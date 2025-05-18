@@ -6,6 +6,7 @@ export const createTeam = async (req: Request, res: Response) => {
     try {
         const { team_name } = req.body;
         const leader_id = (req as any).user.id;
+        const leader_username = (req as any).user.username;
 
         // Validate team name
         if (!team_name) {
@@ -43,6 +44,7 @@ export const createTeam = async (req: Request, res: Response) => {
 
         const newTeam = new Team({
             team_name: team_name.trim(),
+            leader_username,
             leader_id,
             member_limit: 3,
             members_lists: [],
@@ -500,5 +502,61 @@ export const getUserTeams = async (req: Request, res: Response) => {
                     ? error.message
                     : 'Unknown error occurred',
         });
+    }
+};
+
+export const addTeamTasks = async (req: Request, res: Response) => {
+    try {
+        const { team_id, tasks } = req.body;
+        const user_id = (req as any).user.id;
+
+        const user = await User.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+
+        const team = await Team.findById(team_id);
+
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+
+        // Check if the user is the team leader
+        if (team.leader_id.toString() !== user_id.toString()) {
+            res.status(403).json({
+                message: 'Unauthorized',
+                details: 'Only team leader can add tasks to the team',
+            });
+            return;
+        }
+
+        // Add tasks to the team
+        team.tasks.push(...tasks);
+        await team.save();
+
+        res.status(200).json({
+            message: 'Tasks added to the team successfully',
+            team_id: team_id,
+        });
+        return;
+    } catch (error) {
+        console.error('Team task addition error:', error);
+        res.status(500).json({
+            message: 'Error adding tasks to the team',
+            details:
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error occurred',
+        });
+        return;
     }
 };

@@ -22,6 +22,7 @@ import { addTask, deleteTask, getTasks, updateTask } from '../controllers/taskCo
 
 import {
     createTeam,
+    addTeamTasks,
     sendTeamInvitation,
     respondToInvitation,
     requestToJoinTeam,
@@ -67,7 +68,7 @@ router.put('/events/:eventId', authenticateToken, updateEvent);
 router.delete('/events/:eventId', authenticateToken, deleteEvent);
 
 // team routes
-
+router.post('/addTeamTask', authenticateToken, addTeamTasks);
 router.post('/createTeam', authenticateToken, createTeam);
 router.post('/inviteMember', authenticateToken, sendTeamInvitation);
 router.post('/respondToInvitation', authenticateToken, respondToInvitation);

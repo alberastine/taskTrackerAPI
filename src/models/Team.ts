@@ -12,6 +12,15 @@ interface InvitedUser {
     invited_at: Date;
 }
 
+interface TeamTask {
+    task_name: string;
+    assigned_to: string;
+    description: string;
+    date_started: string;
+    deadline: string;
+    status: string;
+}
+
 const JoinRequestSchema = new Schema<JoinRequest>(
     {
         user_id: {
@@ -38,19 +47,32 @@ const InvitedUserSchema = new Schema<InvitedUser>(
     { _id: false }
 );
 
+const TaskSchema = new Schema<TeamTask>(
+    {
+        task_name: { type: String, required: true },
+        assigned_to: { type: String, required: true },
+        description: { type: String, required: true },
+        date_started: { type: String, required: true },
+        deadline: { type: String, required: true },
+        status: { type: String, required: true },
+    },
+);
+
 export interface ITeam extends Document {
     team_name: string;
     leader_id: mongoose.Types.ObjectId;
+    leader_username: string;
     member_limit: number;
     invited_users: InvitedUser[];
     join_requests: JoinRequest[];
     members_lists: { user_id: mongoose.Types.ObjectId; username: string }[];
-    tasks: mongoose.Types.ObjectId[];
+    tasks: TeamTask[];
 }
 
 const TeamSchema = new Schema<ITeam>(
     {
         team_name: { type: String, required: true },
+        leader_username: { type: String, required: true },
         leader_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -66,7 +88,7 @@ const TeamSchema = new Schema<ITeam>(
                 _id: false,
             },
         ],
-        tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+        tasks: [TaskSchema],
     },
     {
         timestamps: true,

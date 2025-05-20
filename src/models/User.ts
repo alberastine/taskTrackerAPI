@@ -1,37 +1,53 @@
-import mongoose from 'mongoose';
-const { v4: uuidv4 } = require('uuid');
+import mongoose, { Schema, Document } from 'mongoose';
 
-const EventSchema = new mongoose.Schema({
-    title: String,
-    date: String,
-  });
+interface UserTask {
+    taskName: string;
+    dateStarted: string;
+    deadline: string;
+    status: string;
+}
 
-const TaskSchema = new mongoose.Schema({
-    taskName: String,
-    dateStarted: String,
-    deadline: String,
-    status: String,
+interface UserEvent {
+    title: string;
+    date: string;
+}
+
+export interface IUser extends Document {
+    username: string;
+    password: string;
+    gmail: string;
+    profilePic?: string;
+    coverPic?: string;
+    tasks: UserTask[];
+    events: UserEvent[];
+}
+
+const TaskSchema = new Schema<UserTask>({
+    taskName: { type: String, required: true },
+    dateStarted: { type: String, required: true },
+    deadline: { type: String, required: true },
+    status: { type: String, required: true },
 });
 
-const UserSchema = new mongoose.Schema({
-    id: { type: Number },
-    username: { type: String, required: true },
-    password: { type: String, required: true },
-    gmail: { type: String, required: true, unique: true },
-    tasks: [TaskSchema],
-    events: [EventSchema],
-    profilePic: {
-        type: String,
-        default: '',
-      },
-    coverPic: {
-      type: String,
-      default: '',
+const EventSchema = new Schema<UserEvent>({
+    title: { type: String, required: true },
+    date: { type: String, required: true },
+});
+
+const UserSchema = new Schema<IUser>(
+    {
+        username: { type: String, required: true },
+        password: { type: String, required: true },
+        gmail: { type: String, required: true, unique: true },
+        profilePic: { type: String, default: '' },
+        coverPic: { type: String, default: '' },
+        tasks: [TaskSchema],
+        events: [EventSchema],
     },
-});
+    {
+        timestamps: true,
+    }
+);
 
-const User = mongoose.model('User', UserSchema);
-const Task = mongoose.model('Task', TaskSchema);
-
-export default User;
-export { Task };
+export default mongoose.model<IUser>('User', UserSchema);
+export const Task = mongoose.model<UserTask>('Task', TaskSchema);

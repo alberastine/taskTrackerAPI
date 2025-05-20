@@ -54,7 +54,7 @@ export const updateEvent = async (
         }
 
         // Find event by ID within the user's events array
-        const event = user.events.id(eventId);
+        const event = user.events.find((event: any) => event.id === eventId);
         if (!event) {
             res.status(404).json({ message: 'Event not found.' });
             return;

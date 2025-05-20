@@ -1,3 +1,4 @@
+// models/Team.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
 interface JoinRequest {
@@ -50,7 +51,7 @@ const InvitedUserSchema = new Schema<InvitedUser>(
 const TaskSchema = new Schema<TeamTask>(
     {
         task_name: { type: String, required: true },
-        assigned_to: { type: String, required: true },
+        assigned_to: { type: String },
         description: { type: String, required: true },
         date_started: { type: String, required: true },
         deadline: { type: String, required: true },
@@ -84,7 +85,7 @@ const TeamSchema = new Schema<ITeam>(
         members_lists: [
             {
                 user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-                username: String,
+                username: { type: String, required: true },
                 _id: false,
             },
         ],

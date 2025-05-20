@@ -1,4 +1,3 @@
-// models/Team.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
 interface JoinRequest {
@@ -17,9 +16,14 @@ interface TeamTask {
     task_name: string;
     assigned_to: string;
     description: string;
-    date_started: string;
+    date_published: string;
     deadline: string;
     status: string;
+}
+
+interface MembersList {
+    user_id: mongoose.Types.ObjectId;
+    username: string;
 }
 
 const JoinRequestSchema = new Schema<JoinRequest>(
@@ -48,15 +52,25 @@ const InvitedUserSchema = new Schema<InvitedUser>(
     { _id: false }
 );
 
-const TaskSchema = new Schema<TeamTask>(
+const TeamTaskSchema = new Schema<TeamTask>({
+    task_name: { type: String, required: true },
+    assigned_to: { type: String },
+    description: { type: String, required: true },
+    date_published: { type: String, required: true },
+    deadline: { type: String, required: true },
+    status: { type: String },
+});
+
+const MembersListSchema = new Schema<MembersList>(
     {
-        task_name: { type: String, required: true },
-        assigned_to: { type: String },
-        description: { type: String, required: true },
-        date_started: { type: String, required: true },
-        deadline: { type: String, required: true },
-        status: { type: String, required: true },
+        user_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        username: { type: String, required: true },
     },
+    { _id: false }
 );
 
 export interface ITeam extends Document {
@@ -66,7 +80,7 @@ export interface ITeam extends Document {
     member_limit: number;
     invited_users: InvitedUser[];
     join_requests: JoinRequest[];
-    members_lists: { user_id: mongoose.Types.ObjectId; username: string }[];
+    members_lists: MembersList[];
     tasks: TeamTask[];
 }
 
@@ -82,14 +96,8 @@ const TeamSchema = new Schema<ITeam>(
         member_limit: { type: Number, default: 3 },
         invited_users: [InvitedUserSchema],
         join_requests: [JoinRequestSchema],
-        members_lists: [
-            {
-                user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-                username: { type: String, required: true },
-                _id: false,
-            },
-        ],
-        tasks: [TaskSchema],
+        members_lists: [MembersListSchema],
+        tasks: [TeamTaskSchema],
     },
     {
         timestamps: true,

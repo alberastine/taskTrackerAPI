@@ -507,7 +507,7 @@ export const getUserTeams = async (req: Request, res: Response) => {
 
 export const addTeamTasks = async (req: Request, res: Response) => {
     try {
-        const { team_id, tasks } = req.body;
+        const { team_id, task } = req.body;
         const user_id = (req as any).user.id;
 
         const user = await User.findById(user_id);
@@ -540,7 +540,7 @@ export const addTeamTasks = async (req: Request, res: Response) => {
         }
 
         // Add tasks to the team
-        team.tasks.push(...tasks);
+        team.tasks.push(...task);
         await team.save();
 
         res.status(200).json({

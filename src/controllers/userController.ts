@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import { hashPassword, comparePassword } from '../helpers/hashedPass';
 import jwt from 'jsonwebtoken';
+import Team from '../models/Team';
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
@@ -288,6 +289,29 @@ export const updateUser = async (req: Request, res: Response) => {
         const updatedUser = await User.findByIdAndUpdate(userId, updates, {
             new: true,
         }).select('-password');
+
+        await Team.updateMany(
+            { leader_id: userId },
+            { $set: { leader_username: updates.username } }
+        );
+
+        await Team.updateMany(
+            { 'members_lists.user_id': userId },
+            { $set: { 'members_lists.$[elem].username': updates.username } },
+            { arrayFilters: [{ 'elem.user_id': userId }] }
+        );
+
+        await Team.updateMany(
+            { 'invited_users.user_id': userId },
+            { $set: { 'invited_users.$[elem].username': updates.username } },
+            { arrayFilters: [{ 'elem.user_id': userId }] }
+        );
+
+        await Team.updateMany(
+            { 'join_requests.user_id': userId },
+            { $set: { 'join_requests.$[elem].username': updates.username } },
+            { arrayFilters: [{ 'elem.user_id': userId }] }
+        );
 
         res.status(200).json({
             message: 'User updated successfully',

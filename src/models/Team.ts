@@ -14,7 +14,7 @@ interface InvitedUser {
 
 interface TeamTask {
     task_name: string;
-    assigned_to: string;
+    assigned_to: mongoose.Types.ObjectId;
     description: string;
     date_published: string;
     deadline: string;
@@ -54,7 +54,10 @@ const InvitedUserSchema = new Schema<InvitedUser>(
 
 const TeamTaskSchema = new Schema<TeamTask>({
     task_name: { type: String, required: true },
-    assigned_to: { type: String },
+    assigned_to: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    },
     description: { type: String, required: true },
     date_published: { type: String, required: true },
     deadline: { type: String, required: true },

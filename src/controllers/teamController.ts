@@ -396,6 +396,13 @@ export const leaveTeam = async (req: Request, res: Response) => {
             (member) => member.user_id.toString() !== user_id.toString()
         );
 
+        // remove user_id from assigned_to array is it exists
+        team.tasks.forEach((task) => {
+            if (task.assigned_to === user_id) {
+                task.assigned_to = '';
+            }
+        });
+
         await team.save();
 
         res.status(200).json({

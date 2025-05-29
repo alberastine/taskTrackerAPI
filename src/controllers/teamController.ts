@@ -567,3 +567,83 @@ export const addTeamTasks = async (req: Request, res: Response) => {
         return;
     }
 };
+
+export const updateAssignTo = async (req: Request, res: Response) => {
+    try {
+        const { team_id, task_id, assign_to } = req.body;
+        const user_id = (req as any).user.id;
+
+        const user = await User.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+
+        const team = await Team.findById(team_id);
+
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+
+        // Check if the user is the team leader
+        if (team.leader_id.toString() !== user_id.toString()) {
+            res.status(403).json({
+                message: 'Unauthorized',
+                details: 'Only team leader can update tasks',
+            });
+            return;
+        }
+
+        const isMember = team.members_lists.some(
+            (member) => member.user_id.toString() === assign_to
+        );
+
+        if (!isMember) {
+            res.status(400).json({
+                message: 'Invalid assignee',
+                details: 'Assigned user is not a member of this team',
+            });
+            return;
+        }
+
+        // Find the task to update
+        const task = team.tasks.find((task) => task._id.toString() === task_id);
+        if (!task) {
+            res.status(404).json({
+                message: 'Task not found',
+                details: `No task found with ID: ${task_id}`,
+            });
+            return;
+        }
+
+        // Update the assigned_to field
+        task.assigned_to = assign_to;
+
+        // Save the updated task
+        await team.save();
+
+        res.status(200).json({
+            message: 'Task updated successfully',
+            team_id: team_id,
+        });
+        return;
+    } catch (error) {
+        console.error('Team task update error:', error);
+        res.status(500).json({
+            message: 'Error updating task',
+            details:
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error occurred',
+        });
+        return;
+    }
+};

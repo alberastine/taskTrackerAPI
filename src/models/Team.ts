@@ -13,6 +13,7 @@ interface InvitedUser {
 }
 
 interface TeamTask {
+    _id: mongoose.Types.ObjectId;
     task_name: string;
     assigned_to: string;
     description: string;
@@ -53,6 +54,7 @@ const InvitedUserSchema = new Schema<InvitedUser>(
 );
 
 const TeamTaskSchema = new Schema<TeamTask>({
+    _id: { type: mongoose.Schema.Types.ObjectId, required: true },
     task_name: { type: String, required: true },
     assigned_to: {
         type: String,

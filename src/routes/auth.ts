@@ -30,6 +30,7 @@ import {
     deleteTeam,
     leaveTeam,
     getUserTeams,
+    updateAssignTo
 } from '../controllers/teamController';
 
 const router = express.Router();
@@ -77,5 +78,6 @@ router.post('/respondToJoinRequest', authenticateToken, respondToJoinRequest);
 router.post('/leaveTeam', authenticateToken, leaveTeam);
 router.delete('/deleteTeam', authenticateToken, deleteTeam);
 router.get('/user-teams', authenticateToken, getUserTeams);
+router.put('/updateAssignTo', authenticateToken, updateAssignTo);
 
 export default router;

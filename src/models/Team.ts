@@ -54,7 +54,6 @@ const InvitedUserSchema = new Schema<InvitedUser>(
 );
 
 const TeamTaskSchema = new Schema<TeamTask>({
-    _id: { type: mongoose.Schema.Types.ObjectId, required: true },
     task_name: { type: String, required: true },
     assigned_to: {
         type: String,

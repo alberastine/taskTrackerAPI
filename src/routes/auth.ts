@@ -16,9 +16,14 @@ import {
     logoutUser,
     uploadProfilePicture,
     uploadCoverPicture,
-    updateUser
+    updateUser,
 } from '../controllers/userController';
-import { addTask, deleteTask, getTasks, updateTask } from '../controllers/taskController';
+import {
+    addTask,
+    deleteTask,
+    getTasks,
+    updateTask,
+} from '../controllers/taskController';
 
 import {
     createTeam,
@@ -30,7 +35,9 @@ import {
     deleteTeam,
     leaveTeam,
     getUserTeams,
-    updateAssignTo
+    updateAssignTo,
+    updateTeamTask,
+    deleteTeamTask,
 } from '../controllers/teamController';
 
 const router = express.Router();
@@ -78,6 +85,9 @@ router.post('/respondToJoinRequest', authenticateToken, respondToJoinRequest);
 router.post('/leaveTeam', authenticateToken, leaveTeam);
 router.delete('/deleteTeam', authenticateToken, deleteTeam);
 router.get('/user-teams', authenticateToken, getUserTeams);
+//team tasks routes
 router.put('/updateAssignTo', authenticateToken, updateAssignTo);
+router.put('/updateTeamTask', authenticateToken, updateTeamTask);
+router.delete('/deleteTeamTask', authenticateToken, deleteTeamTask);
 
 export default router;

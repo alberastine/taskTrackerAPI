@@ -647,3 +647,134 @@ export const updateAssignTo = async (req: Request, res: Response) => {
         return;
     }
 };
+
+export const updateTeamTask = async (req: Request, res: Response) => {
+    try {
+        const { team_id, task_id } = req.body;
+        const user_id = (req as any).user.id;
+        const { task_name, description, deadline, status, assigned_to } =
+            req.body;
+
+        const user = await User.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+
+        const team = await Team.findById(team_id);
+
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+
+        const teamTask = team.tasks.find(
+            (task) => task._id.toString() === task_id
+        );
+        if (!teamTask) {
+            res.status(404).json({
+                message: 'Task not found',
+                details: `No task found with ID: ${task_id}`,
+            });
+            return;
+        }
+
+        teamTask.task_name = task_name || teamTask.task_name;
+        teamTask.description = description || teamTask.description;
+        teamTask.deadline = deadline || teamTask.deadline;
+        teamTask.status = status || teamTask.status;
+        teamTask.assigned_to = assigned_to || teamTask.assigned_to;
+
+        await team.save();
+
+        res.status(200).json({
+            message: 'Task updated successfully',
+            team_id: team_id,
+        });
+        return;
+    } catch (error) {
+        console.error('Team task update error:', error);
+        res.status(500).json({
+            message: 'Error updating task',
+            details:
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+
+export const deleteTeamTask = async (req: Request, res: Response) => {
+    try {
+        const { team_id, task_id } = req.body;
+        const user_id = (req as any).user.id;
+
+        const user = await User.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+
+        const team = await Team.findById(team_id);
+
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+
+        // Check if the user is the team leader
+        if (team.leader_id.toString() !== user_id.toString()) {
+            res.status(403).json({
+                message: 'Unauthorized',
+                details: 'Only team leader can delete tasks',
+            });
+            return;
+        }
+
+        // Find the task to delete
+        const taskIndex = team.tasks.findIndex(
+            (task) => task._id.toString() === task_id
+        );
+        if (taskIndex === -1) {
+            res.status(404).json({
+                message: 'Task not found',
+                details: `No task found with ID: ${task_id}`,
+            });
+            return;
+        }
+
+        // Remove the task from the array
+        team.tasks.splice(taskIndex, 1);
+        await team.save();
+
+        res.status(200).json({
+            message: 'Task deleted successfully',
+            team_id: team_id,
+        });
+        return;
+    } catch (error) {
+        console.error('Team task delete error:', error);
+        res.status(500).json({
+            message: 'Error deleting task',
+            details:
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error occurred',
+        });
+        return;
+    }
+};

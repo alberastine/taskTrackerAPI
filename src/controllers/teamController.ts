@@ -568,7 +568,7 @@ export const addTeamTasks = async (req: Request, res: Response) => {
     }
 };
 
-export const updateAssignTo = async (req: Request, res: Response) => {
+export const claimTeamTask = async (req: Request, res: Response) => {
     try {
         const { team_id, task_id, assign_to } = req.body;
         const user_id = (req as any).user.id;
@@ -589,15 +589,6 @@ export const updateAssignTo = async (req: Request, res: Response) => {
             res.status(404).json({
                 message: 'Team not found',
                 details: `No team found with ID: ${team_id}`,
-            });
-            return;
-        }
-
-        // Check if the user is the team leader
-        if (team.leader_id.toString() !== user_id.toString()) {
-            res.status(403).json({
-                message: 'Unauthorized',
-                details: 'Only team leader can update tasks',
             });
             return;
         }

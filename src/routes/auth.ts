@@ -35,7 +35,7 @@ import {
     deleteTeam,
     leaveTeam,
     getUserTeams,
-    updateAssignTo,
+    claimTeamTask,
     updateTeamTask,
     deleteTeamTask,
 } from '../controllers/teamController';
@@ -86,7 +86,7 @@ router.post('/leaveTeam', authenticateToken, leaveTeam);
 router.delete('/deleteTeam', authenticateToken, deleteTeam);
 router.get('/user-teams', authenticateToken, getUserTeams);
 //team tasks routes
-router.put('/updateAssignTo', authenticateToken, updateAssignTo);
+router.put('/claimTeamTask', authenticateToken, claimTeamTask);
 router.put('/updateTeamTask', authenticateToken, updateTeamTask);
 router.delete('/deleteTeamTask', authenticateToken, deleteTeamTask);
 

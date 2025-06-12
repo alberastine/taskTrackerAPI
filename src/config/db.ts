@@ -3,9 +3,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Cloud MongoDB URI
+const MONGO_URI = process.env.MONGO_URI || '';
+
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI || '');
+        //local server
+        // await mongoose.connect(process.env.MONGO_URI || '');
+
+        //cloud server
+        await mongoose.connect(MONGO_URI);
+
         console.log('MongoDB connected successfully.');
     } catch (error) {
         console.error('MongoDB connection error:', error);

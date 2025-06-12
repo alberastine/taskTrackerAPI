@@ -16,7 +16,10 @@ app.use(cookieParser());
 app.use(
     cors({
         // origin: 'http://localhost:5173',
-        origin: 'https://task-tracker-psi-cyan.vercel.app',
+        origin: [
+            'http://localhost:5173',
+            'https://task-tracker-psi-cyan.vercel.app',
+        ],
         credentials: true,
     })
 );

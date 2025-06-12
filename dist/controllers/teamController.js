@@ -1,0 +1,663 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteTeamTask = exports.updateTeamTask = exports.claimTeamTask = exports.addTeamTasks = exports.getUserTeams = exports.deleteTeam = exports.leaveTeam = exports.respondToJoinRequest = exports.requestToJoinTeam = exports.respondToInvitation = exports.sendTeamInvitation = exports.createTeam = void 0;
+const Team_1 = __importDefault(require("../models/Team"));
+const User_1 = __importDefault(require("../models/User"));
+const createTeam = async (req, res) => {
+    try {
+        const { team_name } = req.body;
+        const leader_id = req.user.id;
+        const leader_username = req.user.username;
+        // Validate team name
+        if (!team_name) {
+            res.status(400).json({
+                message: 'Team name is required',
+                details: 'The team_name field is missing in the request',
+            });
+            return;
+        }
+        if (typeof team_name !== 'string') {
+            res.status(400).json({
+                message: 'Invalid team name format',
+                details: `Team name must be a string, received ${typeof team_name}`,
+            });
+            return;
+        }
+        if (team_name.trim().length === 0) {
+            res.status(400).json({
+                message: 'Invalid team name',
+                details: 'Team name cannot be empty or only whitespace',
+            });
+            return;
+        }
+        const user = await User_1.default.findById(leader_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${leader_id}`,
+            });
+            return;
+        }
+        const newTeam = new Team_1.default({
+            team_name: team_name.trim(),
+            leader_username,
+            leader_id,
+            member_limit: 3,
+            members_lists: [],
+            tasks: [],
+        });
+        const savedTeam = await newTeam.save();
+        res.status(201).json({
+            message: 'Team created successfully',
+            team: savedTeam,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team creation error:', error);
+        res.status(500).json({
+            message: 'Error creating team',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.createTeam = createTeam;
+const sendTeamInvitation = async (req, res) => {
+    try {
+        const { team_id, invited_user_id } = req.body;
+        const leader_id = req.user.id;
+        const user = await User_1.default.findById(leader_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${leader_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        // Validation checks
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+        if (team.leader_id.toString() !== leader_id.toString()) {
+            res.status(403).json({
+                message: 'Only team leader can send invitations',
+            });
+            return;
+        }
+        if (team.members_lists.length >= team.member_limit) {
+            res.status(400).json({ message: 'Team is already full' });
+            return;
+        }
+        // Find invited user
+        const invitedUser = await User_1.default.findById(invited_user_id);
+        if (!invitedUser) {
+            res.status(404).json({
+                message: 'Invited user not found',
+                details: `No user found with ID: ${invited_user_id}`,
+            });
+            return;
+        }
+        // Check if user is already a member or invited
+        const isAlreadyMember = team.members_lists.some((member) => member.user_id.toString() === invited_user_id.toString());
+        const isAlreadyInvited = team.invited_users.some((user) => user.user_id.toString() === invited_user_id.toString());
+        if (isAlreadyMember ||
+            team.leader_id.toString() === invited_user_id.toString()) {
+            res.status(400).json({
+                message: 'User is already a member of this team or is the team leader',
+            });
+            return;
+        }
+        if (isAlreadyInvited) {
+            res.status(400).json({
+                message: 'User has already been invited to this team',
+            });
+            return;
+        }
+        // Add user to invited_users
+        team.invited_users.push({
+            user_id: invited_user_id,
+            username: invitedUser.username,
+            invited_at: new Date(),
+        });
+        await team.save();
+        res.status(200).json({
+            message: 'Invitation sent successfully',
+        });
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Error sending invitation', error });
+    }
+};
+exports.sendTeamInvitation = sendTeamInvitation;
+const respondToInvitation = async (req, res) => {
+    try {
+        const { team_id, accept } = req.body;
+        const user_id = req.user.id;
+        const username = req.user.username;
+        const team = await Team_1.default.findById(team_id);
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+        // Check if user is actually invited
+        const inviteIndex = team.invited_users.findIndex((user) => user.user_id.toString() === user_id.toString());
+        if (inviteIndex === -1) {
+            res.status(400).json({
+                message: 'No pending invitation found for this team',
+            });
+            return;
+        }
+        // Remove user from invited_users
+        team.invited_users.splice(inviteIndex, 1);
+        if (accept) {
+            // Check if team is full
+            if (team.members_lists.length >= team.member_limit) {
+                res.status(400).json({ message: 'Team is already full' });
+                return;
+            }
+            // Add user to members_lists
+            team.members_lists.push({
+                user_id,
+                username,
+            });
+            await team.save();
+            res.status(200).json({
+                message: 'Invitation accepted and joined team successfully',
+                team,
+            });
+        }
+        else {
+            await team.save();
+            res.status(200).json({
+                message: 'Invitation declined successfully',
+            });
+        }
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error responding to invitation',
+            error,
+        });
+    }
+};
+exports.respondToInvitation = respondToInvitation;
+const requestToJoinTeam = async (req, res) => {
+    try {
+        const { team_id } = req.body;
+        const user_id = req.user.id;
+        const username = req.user.username;
+        const team = await Team_1.default.findById(team_id);
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+        // Check if user is already a member
+        const isAlreadyMember = team.members_lists.some((member) => member.user_id.toString() === user_id.toString());
+        if (isAlreadyMember ||
+            team.leader_id.toString() === user_id.toString()) {
+            res.status(400).json({
+                message: 'You are already a member of this team or the team leader',
+            });
+            return;
+        }
+        // Check if user already has a pending request
+        const hasExistingRequest = team.join_requests.some((request) => request.user_id.toString() === user_id.toString());
+        if (hasExistingRequest) {
+            res.status(400).json({
+                message: 'You already have a pending join request for this team',
+            });
+            return;
+        }
+        // Add join request
+        team.join_requests.push({
+            user_id,
+            username,
+            requested_at: new Date(),
+        });
+        await team.save();
+        res.status(200).json({
+            message: 'Join request sent successfully',
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error sending join request',
+            error,
+        });
+    }
+};
+exports.requestToJoinTeam = requestToJoinTeam;
+const respondToJoinRequest = async (req, res) => {
+    try {
+        const { team_id, user_id, accept } = req.body;
+        const leader_id = req.user.id;
+        const team = await Team_1.default.findById(team_id);
+        if (!team) {
+            res.status(404).json({ message: 'Team not found' });
+            return;
+        }
+        // Verify that the responder is the team leader
+        if (team.leader_id.toString() !== leader_id.toString()) {
+            res.status(403).json({
+                message: 'Only team leader can respond to join requests',
+            });
+            return;
+        }
+        // Find the join request
+        const requestIndex = team.join_requests.findIndex((request) => request.user_id.toString() === user_id.toString());
+        if (requestIndex === -1) {
+            res.status(404).json({
+                message: 'Join request not found',
+            });
+            return;
+        }
+        const request = team.join_requests[requestIndex];
+        // Remove the request
+        team.join_requests.splice(requestIndex, 1);
+        if (accept) {
+            // Check if team is full
+            if (team.members_lists.length >= team.member_limit) {
+                res.status(400).json({ message: 'Team is already full' });
+                return;
+            }
+            // Add user to members_lists
+            team.members_lists.push({
+                user_id: request.user_id,
+                username: request.username,
+            });
+            await team.save();
+            res.status(200).json({
+                message: 'Join request accepted',
+                team,
+            });
+        }
+        else {
+            await team.save();
+            res.status(200).json({
+                message: 'Join request declined',
+            });
+        }
+    }
+    catch (error) {
+        res.status(500).json({
+            message: 'Error responding to join request',
+            error,
+        });
+    }
+};
+exports.respondToJoinRequest = respondToJoinRequest;
+const leaveTeam = async (req, res) => {
+    try {
+        const { team_id } = req.body;
+        const user_id = req.user.id;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+        // Check if the user is not the team leader
+        if (team.leader_id.toString() === user_id.toString()) {
+            res.status(400).json({
+                message: 'Team leader cannot leave the team',
+                details: 'To leave the team, you must first transfer leadership or delete the team',
+            });
+            return;
+        }
+        // Check if the user is actually a member of the team
+        const isMember = team.members_lists.some((member) => member.user_id.toString() === user_id.toString());
+        if (!isMember) {
+            res.status(400).json({
+                message: 'Not a team member',
+                details: 'You are not a member of this team',
+            });
+            return;
+        }
+        // Remove the user from the team
+        team.members_lists = team.members_lists.filter((member) => member.user_id.toString() !== user_id.toString());
+        // remove user_id from assigned_to array is it exists
+        team.tasks.forEach((task) => {
+            if (task.assigned_to === user_id) {
+                task.assigned_to = '';
+            }
+        });
+        await team.save();
+        res.status(200).json({
+            message: 'Successfully left the team',
+            team_id: team_id,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team leave error:', error);
+        res.status(500).json({
+            message: 'Error leaving team',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.leaveTeam = leaveTeam;
+const deleteTeam = async (req, res) => {
+    try {
+        const { team_id } = req.body;
+        const user_id = req.user.id;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+        // Check if the user is the team leader
+        if (team.leader_id.toString() !== user_id.toString()) {
+            res.status(403).json({
+                message: 'Unauthorized',
+                details: 'Only team leader can delete the team',
+            });
+            return;
+        }
+        // Delete the team
+        await Team_1.default.findByIdAndDelete(team_id);
+        res.status(200).json({
+            message: 'Team deleted successfully',
+            team_id: team_id,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team deletion error:', error);
+        res.status(500).json({
+            message: 'Error deleting team',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.deleteTeam = deleteTeam;
+const getUserTeams = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const teams = await Team_1.default.find({
+            $or: [
+                { leader_id: user_id },
+                { 'members_lists.user_id': user_id },
+                { 'invited_users.user_id': user_id },
+            ],
+        });
+        res.status(200).json({ teams });
+    }
+    catch (error) {
+        console.error('Error fetching user teams:', error);
+        res.status(500).json({
+            message: 'Error fetching user teams',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+    }
+};
+exports.getUserTeams = getUserTeams;
+const addTeamTasks = async (req, res) => {
+    try {
+        const { team_id, task } = req.body;
+        const user_id = req.user.id;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+        // Check if the user is the team leader
+        if (team.leader_id.toString() !== user_id.toString()) {
+            res.status(403).json({
+                message: 'Unauthorized',
+                details: 'Only team leader can add tasks to the team',
+            });
+            return;
+        }
+        // Add tasks to the team
+        team.tasks.push(...task);
+        await team.save();
+        res.status(200).json({
+            message: 'Tasks added to the team successfully',
+            team_id: team_id,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team task addition error:', error);
+        res.status(500).json({
+            message: 'Error adding tasks to the team',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.addTeamTasks = addTeamTasks;
+const claimTeamTask = async (req, res) => {
+    try {
+        const { team_id, task_id, assign_to } = req.body;
+        const user_id = req.user.id;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+        const isMember = team.members_lists.some((member) => member.user_id.toString() === assign_to);
+        if (!isMember) {
+            res.status(400).json({
+                message: 'Invalid assignee',
+                details: 'Assigned user is not a member of this team',
+            });
+            return;
+        }
+        // Find the task to update
+        const task = team.tasks.find((task) => task._id.toString() === task_id);
+        if (!task) {
+            res.status(404).json({
+                message: 'Task not found',
+                details: `No task found with ID: ${task_id}`,
+            });
+            return;
+        }
+        // Update the assigned_to field
+        task.assigned_to = assign_to;
+        // Save the updated task
+        await team.save();
+        res.status(200).json({
+            message: 'Task updated successfully',
+            team_id: team_id,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team task update error:', error);
+        res.status(500).json({
+            message: 'Error updating task',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.claimTeamTask = claimTeamTask;
+const updateTeamTask = async (req, res) => {
+    try {
+        const { team_id, task_id } = req.body;
+        const user_id = req.user.id;
+        const { task_name, description, deadline, status, assigned_to } = req.body;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+        const teamTask = team.tasks.find((task) => task._id.toString() === task_id);
+        if (!teamTask) {
+            res.status(404).json({
+                message: 'Task not found',
+                details: `No task found with ID: ${task_id}`,
+            });
+            return;
+        }
+        teamTask.task_name = task_name || teamTask.task_name;
+        teamTask.description = description || teamTask.description;
+        teamTask.deadline = deadline || teamTask.deadline;
+        teamTask.status = status || teamTask.status;
+        teamTask.assigned_to = assigned_to || teamTask.assigned_to;
+        await team.save();
+        res.status(200).json({
+            message: 'Task updated successfully',
+            team_id: team_id,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team task update error:', error);
+        res.status(500).json({
+            message: 'Error updating task',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.updateTeamTask = updateTeamTask;
+const deleteTeamTask = async (req, res) => {
+    try {
+        const { team_id, task_id } = req.body;
+        const user_id = req.user.id;
+        const user = await User_1.default.findById(user_id);
+        if (!user) {
+            res.status(404).json({
+                message: 'User not found',
+                details: `No user found with ID: ${user_id}`,
+            });
+            return;
+        }
+        const team = await Team_1.default.findById(team_id);
+        // Validation checks
+        if (!team) {
+            res.status(404).json({
+                message: 'Team not found',
+                details: `No team found with ID: ${team_id}`,
+            });
+            return;
+        }
+        // Check if the user is the team leader
+        if (team.leader_id.toString() !== user_id.toString()) {
+            res.status(403).json({
+                message: 'Unauthorized',
+                details: 'Only team leader can delete tasks',
+            });
+            return;
+        }
+        // Find the task to delete
+        const taskIndex = team.tasks.findIndex((task) => task._id.toString() === task_id);
+        if (taskIndex === -1) {
+            res.status(404).json({
+                message: 'Task not found',
+                details: `No task found with ID: ${task_id}`,
+            });
+            return;
+        }
+        // Remove the task from the array
+        team.tasks.splice(taskIndex, 1);
+        await team.save();
+        res.status(200).json({
+            message: 'Task deleted successfully',
+            team_id: team_id,
+        });
+        return;
+    }
+    catch (error) {
+        console.error('Team task delete error:', error);
+        res.status(500).json({
+            message: 'Error deleting task',
+            details: error instanceof Error
+                ? error.message
+                : 'Unknown error occurred',
+        });
+        return;
+    }
+};
+exports.deleteTeamTask = deleteTeamTask;

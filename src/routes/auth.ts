@@ -47,7 +47,9 @@ router.post('/signup', registerUser);
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
 router.get('/id', getUserById);
-router.get('/allUserInfo', getAllUser);
+router.get('/allUserInfo', getAllUser, (req, res) => {
+    res.json({ message: 'Profile route works!' });
+});
 router.get('/profile', authenticateToken, getUserProfile);
 router.post(
     '/uploadProfilePicture',

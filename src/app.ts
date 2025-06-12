@@ -19,6 +19,7 @@ app.use(
         origin: [
             'http://localhost:5173',
             'https://task-tracker-psi-cyan.vercel.app',
+            'https://task-tracker-jomar-serafin-alberastines-projects.vercel.app',
         ],
         credentials: true,
     })
